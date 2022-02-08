@@ -17,7 +17,7 @@ class DynamicWallpaperService : WallpaperService() {
     inner class JourneyWallpaperEngine(private val context: Context) : WallpaperService.Engine() {
 
         private var visible = false
-        private val updateDelayMs = 5000L;
+        private val updateDelayMs = if (BuildConfig.DEBUG) 5000L else 15 * 60 * 1000L; // 15 min
         private var width = 0
         private var height = 0
         private val base = this.getBitmap("journey_base.png");
@@ -79,8 +79,8 @@ class DynamicWallpaperService : WallpaperService() {
 
             val o1 = this.interpolate(
                 hr.toFloat(),
-                arrayOf(0F,   3F,   6F,   9F,  12F, 15F, 18F, 21F, 23F),
-                arrayOf(.85F, .9F, .85F, .7F, .3F,  0F, .3F, .5F, .85F)
+                arrayOf(0F, 3F, 6F, 9F, 12F, 15F, 18F, 21F, 23F),
+                arrayOf(.85F, .9F, .85F, .7F, .3F, 0F, .3F, .5F, .85F)
             )
             Log.d("WALLPAPER", "O1, $o1")
             val o2 = this.interpolate(
