@@ -17,7 +17,10 @@ class DynamicWallpaperService : WallpaperService() {
     inner class JourneyWallpaperEngine(private val context: Context) : WallpaperService.Engine() {
 
         private var visible = false
-        private val updateDelayMs = if (BuildConfig.DEBUG) 5000L else 15 * 60 * 1000L; // 15 min
+
+        //        private val updateDelayMs = if (BuildConfig.DEBUG) 5000L else 15 * 60 * 1000L; // 15 min
+        private val updateDelayMs = 15 * 60 * 1000L; // 15 min
+        private var lastUpdateHr = -1
         private var width = 0
         private var height = 0
         private val base = this.getBitmap("journey_base.png");
@@ -36,7 +39,8 @@ class DynamicWallpaperService : WallpaperService() {
         }
 
         private fun draw() {
-            if (visible) {
+            Log.d("WALLPAPER", "lastUpdateHr $lastUpdateHr ${this.getHourOfDay()}")
+            if (visible && this.getHourOfDay() != lastUpdateHr) {
                 this.holder?.let { hldr ->
                     hldr.lockCanvas()?.let { canvas ->
                         val dstRect = Rect(0, 0, width, height)
@@ -52,6 +56,7 @@ class DynamicWallpaperService : WallpaperService() {
                         canvas.drawBitmap(l1, null, dstRect, Paint().apply { alpha = alphas[1] })
                         canvas.drawBitmap(l2, null, dstRect, Paint().apply { alpha = alphas[2] })
                         hldr.unlockCanvasAndPost(canvas)
+                        lastUpdateHr = this.getHourOfDay()
                     }
                 }
                 handler.removeCallbacks(updateWallpaper)
@@ -72,11 +77,14 @@ class DynamicWallpaperService : WallpaperService() {
             return (((value - from[range]) * (to[range + 1] - to[range])) / (from[range + 1] - from[range])) + to[range]
         }
 
-        private fun getOpacitiesByTime(): Array<Int> {
+        private fun getHourOfDay(): Int {
             val cal = Calendar.getInstance()
-            val hr = cal.get(Calendar.HOUR_OF_DAY);
-            Log.d("WALLPAPER", "Hour of day, $hr")
+            return cal.get(Calendar.HOUR_OF_DAY);
+        }
 
+        private fun getOpacitiesByTime(): Array<Int> {
+            val hr = this.getHourOfDay()
+            Log.d("WALLPAPER", "Hour of day, $hr")
             val o1 = this.interpolate(
                 hr.toFloat(),
                 arrayOf(0F, 3F, 6F, 9F, 12F, 15F, 18F, 21F, 23F),
@@ -94,7 +102,9 @@ class DynamicWallpaperService : WallpaperService() {
 
         override fun onSurfaceCreated(holder: SurfaceHolder?) {
             super.onSurfaceCreated(holder)
+            Log.d("WALLPAPER", "onSurfaceCreated")
             this.holder = surfaceHolder;
+            lastUpdateHr = -1
             if (visible) {
                 handler.post(updateWallpaper)
             }
@@ -102,6 +112,7 @@ class DynamicWallpaperService : WallpaperService() {
 
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
+            Log.d("WALLPAPER", "onVisibilityChanged $visible")
             this.visible = visible
             if (visible) {
                 handler.post(updateWallpaper)
@@ -117,8 +128,10 @@ class DynamicWallpaperService : WallpaperService() {
             height: Int
         ) {
             super.onSurfaceChanged(holder, format, width, height)
+            Log.d("WALLPAPER", "onSurfaceChanged $width $height")
             this.width = width
             this.height = height
+            lastUpdateHr = -1
             if (visible) {
                 handler.removeCallbacks(updateWallpaper)
                 handler.post(updateWallpaper)
@@ -127,7 +140,9 @@ class DynamicWallpaperService : WallpaperService() {
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder?) {
             super.onSurfaceDestroyed(holder)
+            Log.d("WALLPAPER", "onSurfaceDestroyed")
             this.visible = false;
+            lastUpdateHr = -1
             handler.removeCallbacks(updateWallpaper);
         }
     }
